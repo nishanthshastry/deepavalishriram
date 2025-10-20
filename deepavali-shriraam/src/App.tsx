@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import DeepavaliShowcase from "./DeepavaliShowcase";
 
 // ---------- helpers ----------
@@ -9,7 +9,7 @@ const formatTime = (sec: number) => {
   return `${m}:${s.toString().padStart(2, "0")}`;
 };
 
-// ---------- audio controls (responsive/stacked on mobile) ----------
+// ---------- audio controls (fixed bar; mobile-first layout) ----------
 function AudioControls() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -21,24 +21,22 @@ function AudioControls() {
   const [dur, setDur] = useState(NaN);
 
   useEffect(() => {
-    const a = new Audio("audio/ramlofi.mp3");
+    const src = `${import.meta.env.BASE_URL}audio/ramlofi.mp3`;
+    const a = new Audio(src);
     a.loop = true;
     a.preload = "auto";
 
+    // Try unmuted autoplay; fall back to muted if blocked
     a.muted = false;
     a.volume = vol;
     a.play()
       .then(() => { setMuted(false); setPlaying(true); })
       .catch(() => {
-        a.muted = true;
-        a.volume = 0;
+        a.muted = true; a.volume = 0;
         a.play().catch(() => {});
-        setMuted(true);
-        setPlaying(true);
-
+        setMuted(true); setPlaying(true);
         const unlock = () => {
-          a.muted = false;
-          a.volume = vol;
+          a.muted = false; a.volume = vol;
           a.play().catch(() => {});
           setMuted(false);
           window.removeEventListener("pointerdown", unlock);
@@ -63,10 +61,7 @@ function AudioControls() {
     const onVis = () => { if (!document.hidden) a.play().catch(() => {}); };
     document.addEventListener("visibilitychange", onVis);
 
-    const tick = () => {
-      if (audioRef.current) setCurr(audioRef.current.currentTime || 0);
-      rafRef.current = requestAnimationFrame(tick);
-    };
+    const tick = () => { if (audioRef.current) setCurr(audioRef.current.currentTime || 0); rafRef.current = requestAnimationFrame(tick); };
     rafRef.current = requestAnimationFrame(tick);
 
     const onKey = (e: KeyboardEvent) => {
@@ -87,119 +82,73 @@ function AudioControls() {
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("keydown", onKey);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      a.pause();
-      a.src = "";
+      a.pause(); a.src = "";
       audioRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const togglePlay = () => {
-    const a = audioRef.current;
-    if (!a) return;
+    const a = audioRef.current; if (!a) return;
     if (a.paused) { a.play().catch(() => {}); setPlaying(true); }
     else { a.pause(); setPlaying(false); }
   };
 
   const skip = (deltaSec: number) => {
-    const a = audioRef.current;
-    if (!a) return;
+    const a = audioRef.current; if (!a) return;
     const duration = isFinite(a.duration) ? a.duration : Infinity;
-    const target = Math.max(
-      0,
-      Math.min(isFinite(duration) ? duration : a.currentTime + deltaSec + 1, a.currentTime + deltaSec)
-    );
-    // @ts-ignore fastSeek where available
+    const target = Math.max(0, Math.min(isFinite(duration) ? duration : a.currentTime + deltaSec + 1, a.currentTime + deltaSec));
+    // @ts-ignore
     if (typeof a.fastSeek === "function") a.fastSeek(target); else a.currentTime = target;
     if (a.paused) { a.play().catch(() => {}); setPlaying(true); }
   };
 
   const toggleMute = () => {
-    const a = audioRef.current;
-    if (!a) return;
-    a.muted = !a.muted;
-    setMuted(a.muted);
-    if (!a.muted) {
-      a.volume = vol;
-      if (a.paused) a.play().catch(() => {});
-    }
+    const a = audioRef.current; if (!a) return;
+    a.muted = !a.muted; setMuted(a.muted);
+    if (!a.muted) { a.volume = vol; if (a.paused) a.play().catch(() => {}); }
   };
 
   const changeVol = (v: number) => {
     setVol(v);
-    const a = audioRef.current;
-    if (!a) return;
+    const a = audioRef.current; if (!a) return;
     a.volume = v;
-    if (a.muted && v > 0) {
-      a.muted = false;
-      setMuted(false);
-      a.play().catch(() => {});
-    }
+    if (a.muted && v > 0) { a.muted = false; setMuted(false); a.play().catch(() => {}); }
   };
 
-  // --- UI: stacked on mobile, inline on ≥sm ---
   return (
-    <div
-      className="fixed inset-x-2 sm:inset-x-4 z-50"
-      style={{ bottom: "calc(0.5rem + env(safe-area-inset-bottom))" }}
-    >
-      <div className="mx-auto w-full max-w-full sm:max-w-5xl rounded-xl sm:rounded-2xl md:rounded-full border border-white/10 bg-black/60 px-3 py-2 sm:px-4 sm:py-2.5 backdrop-blur shadow-lg">
-        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-2 sm:gap-3">
-          {/* Transport row */}
-          <div className="flex items-center justify-center gap-2 sm:gap-3">
-            <button
-              onClick={togglePlay}
-              className="rounded-full bg-amber-400/90 text-black text-sm font-semibold px-3 py-1.5 hover:scale-105"
-              aria-label={playing ? "Pause audio" : "Play audio"}
-              title={playing ? "Pause" : "Play"}
-            >
+    <div className="fixed inset-x-2 sm:inset-x-4 bottom-3 sm:bottom-4 z-50">
+      <div className="mx-auto max-w-[720px] sm:max-w-5xl rounded-2xl sm:rounded-full border border-white/10 bg-black/65 px-3 py-3 sm:py-2 backdrop-blur shadow-lg">
+        {/* mobile-first vertical layout */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          {/* Transport */}
+          <div className="flex items-center gap-3">
+            <button onClick={togglePlay} className="rounded-full bg-amber-400/90 text-black text-sm font-semibold px-4 py-1.5 hover:scale-105">
               {playing ? "Pause ⏸" : "Play ▶️"}
             </button>
-            <button
-              onClick={() => skip(-10)}
-              className="rounded-full bg-white/15 text-white text-sm font-semibold px-3 py-1.5 hover:scale-105"
-              aria-label="Back 10 seconds"
-              title="Back 10s (←)"
-            >
-              ⏪ -10s
-            </button>
-            <button
-              onClick={() => skip(10)}
-              className="rounded-full bg-white/15 text-white text-sm font-semibold px-3 py-1.5 hover:scale-105"
-              aria-label="Forward 10 seconds"
-              title="Forward 10s (→)"
-            >
-              ⏩ +10s
-            </button>
+            <button onClick={() => skip(-10)} className="rounded-full bg-white/15 text-white text-sm font-semibold px-3 py-1.5 hover:scale-105">⏪ -10s</button>
+            <button onClick={() => skip(10)}  className="rounded-full bg-white/15 text-white text-sm font-semibold px-3 py-1.5 hover:scale-105">⏩ +10s</button>
           </div>
 
-          {/* Volume row (mobile: second line) */}
-          <div className="flex items-center justify-center gap-3">
-            <button
-              onClick={toggleMute}
-              className="rounded-full bg-amber-400/90 text-black text-sm font-semibold px-3 py-1.5 hover:scale-105"
-              aria-label={muted ? "Unmute" : "Mute"}
-              title={muted ? "Unmute" : "Mute"}
-            >
+          {/* Volume group */}
+          <div className="flex items-center gap-3">
+            <button onClick={toggleMute} className="rounded-full bg-amber-400/90 text-black text-sm font-semibold px-4 py-1.5 hover:scale-105">
               {muted ? "Unmute 🔊" : "Mute 🔇"}
             </button>
             <div className="flex items-center gap-2">
               <span className="text-xs text-white/70">Vol</span>
               <input
-                type="range"
-                min={0}
-                max={100}
+                type="range" min={0} max={100}
                 value={Math.round(vol * 100)}
                 onInput={(e) => changeVol(parseInt((e.target as HTMLInputElement).value, 10) / 100)}
-                className="accent-amber-400 w-32 sm:w-40 md:w-48"
-                aria-label="Volume"
-                title="Volume"
+                className="accent-amber-400"
+                style={{ width: 140 }}
               />
             </div>
           </div>
 
-          {/* Time (mobile: bottom centered) */}
-          <div className="flex items-center justify-center text-white/80">
+          {/* Time (always visible, centered on mobile) */}
+          <div className="flex items-center justify-center sm:justify-end text-white/80">
             <span className="text-[11px] sm:text-xs tabular-nums">
               {formatTime(curr)} <span className="text-white/50">/</span> {formatTime(dur)}
             </span>
@@ -212,15 +161,13 @@ function AudioControls() {
 
 export default function App() {
   return (
-    // Full viewport, prevent scroll; audio is fixed; content uses available height.
-    <div className="h-[100svh] bg-black text-white overflow-hidden">
-      <div className="mx-auto h-full max-w-7xl px-2 sm:px-4 flex flex-col">
-        <div className="pt-1 md:pt-3" />
-        <div className="flex-1 min-h-0">
-          <DeepavaliShowcase autoPlay fireworks showGreeting />
-        </div>
-      </div>
+    <div className="min-h-screen overflow-hidden sm:overflow-visible flex items-start sm:items-center justify-center bg-black text-white pb-[108px] sm:pb-[92px]">
+      {/* Audio controls (with autoplay) */}
       <AudioControls />
+      {/* Showcase with greeting rendered above the frame & dots outside */}
+      <div className="w-full px-2 sm:px-4 pt-3 sm:pt-6">
+        <DeepavaliShowcase autoPlay fireworks showGreeting />
+      </div>
     </div>
   );
 }

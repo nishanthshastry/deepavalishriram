@@ -1,23 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * RamImageFX
- * Renders one image with layered cinematic FX.
- * This version accepts a rich `options` prop so every slide can feel unique.
+ * RamImageFX — cinematic FX per slide (heat shimmer, bloom, embers, light sweep, pop fireworks).
  */
 
 type FireworkPt = { x: string; y: string; delay?: number };
 type FXOptions = {
-  // visuals
-  bloom?: number;                 // GaussianBlur stdDeviation (default 6)
-  shimmerScale?: number;          // feDisplacementMap scale (default 8)
-  vignetteStrength?: number;      // 0..1 (default 1)
-  showSweep?: boolean;            // moving light sweep band
-  // particles
-  emberCount?: number;            // default 80
-  hueMin?: number;                // ember hue range (default 35)
-  hueMax?: number;                // ember hue range (default 60)
-  fireworks?: FireworkPt[];       // override fireworks positions
+  bloom?: number;
+  shimmerScale?: number;
+  vignetteStrength?: number;
+  showSweep?: boolean;
+  emberCount?: number;
+  hueMin?: number;
+  hueMax?: number;
+  fireworks?: FireworkPt[];
 };
 
 type Props = {
@@ -49,7 +45,7 @@ export default function RamImageFX({
   const hueMax = options.hueMax ?? 60;
   const sweepOn = options.showSweep ?? false;
 
-  // --- Embers / Sparkles canvas ---
+  // Embers / sparkles
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -120,7 +116,7 @@ export default function RamImageFX({
     };
   }, [emberCount, hueMin, hueMax]);
 
-  // --- Parallax tilt ---
+  // Parallax tilt
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
@@ -168,7 +164,7 @@ export default function RamImageFX({
           }}
         />
 
-        {/* Heat-shimmer filter host (SVG wraps the image) */}
+        {/* Heat-shimmer + bloom image stack */}
         <svg
           className="absolute inset-0 w-full h-full"
           viewBox={`0 0 ${W} ${H}`}
@@ -182,8 +178,6 @@ export default function RamImageFX({
               </feTurbulence>
               <feDisplacementMap in="SourceGraphic" in2="noise" scale={shimmerScale} xChannelSelector="R" yChannelSelector="G" />
             </filter>
-
-            {/* soft bloom by duplicating and blurring */}
             <filter id="bloom" x="-30%" y="-30%" width="160%" height="160%">
               <feGaussianBlur stdDeviation={bloom} result="b1" />
               <feMerge>
@@ -193,26 +187,13 @@ export default function RamImageFX({
             </filter>
           </defs>
 
-          {/* Base image (with heat shimmer) */}
           <image href={src} x="0" y="0" width={W} height={H} filter="url(#heat)" />
-          {/* Bloom/glow duplicate with screen blend */}
-          <image
-            href={src}
-            x="0" y="0" width={W} height={H}
-            style={{ mixBlendMode: "screen", opacity: 0.85 }}
-            filter="url(#bloom)"
-          />
+          <image href={src} x="0" y="0" width={W} height={H} style={{ mixBlendMode: "screen", opacity: 0.85 }} filter="url(#bloom)" />
 
-          {/* Optional light sweep */}
-          {sweepOn && (
-            <g style={{ mixBlendMode: "screen" }}>
-              <rect x="0" y="0" width={W} height={H} fill="transparent" />
-              <Sweep />
-            </g>
-          )}
+          {options.showSweep && <g style={{ mixBlendMode: "screen" }}><rect x="0" y="0" width={W} height={H} fill="transparent" /><Sweep /></g>}
         </svg>
 
-        {/* Extra bloom halo (blurred) */}
+        {/* Halo */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
@@ -224,29 +205,21 @@ export default function RamImageFX({
           }}
         />
 
-        {/* Embers / sparkles canvas */}
-        {sparkles && (
-          <canvas
-            ref={canvasRef}
-            className="absolute inset-0 pointer-events-none"
-            style={{ transform: "translateZ(10px)" }}
-          />
-        )}
+        {/* Embers */}
+        {sparkles && <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" style={{ transform: "translateZ(10px)" }} />}
 
-        {/* Small firework pops in the upper area */}
+        {/* Firework pops */}
         {fireworks && (
           <div className="pointer-events-none absolute inset-0">
             {(options.fireworks ?? [
               { x: "15%", y: "22%", delay: 0.2 },
               { x: "78%", y: "25%", delay: 0.6 },
               { x: "62%", y: "14%", delay: 1.0 },
-            ]).map((p, i) => (
-              <Pop key={i} x={p.x} y={p.y} delay={p.delay} />
-            ))}
+            ]).map((p, i) => <Pop key={i} x={p.x} y={p.y} delay={p.delay} />)}
           </div>
         )}
 
-        {/* Caption */}
+        {/* Caption chip */}
         <div className="absolute bottom-4 left-0 right-0 text-center" style={{ transform: "translateZ(20px)" }}>
           <div
             className="mx-auto inline-block rounded-full border border-amber-400/60 px-4 py-1.5 text-amber-200/95 backdrop-blur-sm"
@@ -260,12 +233,10 @@ export default function RamImageFX({
   );
 }
 
-/* ---------- Light sweep band ---------- */
 function Sweep() {
   const [t, setT] = useState(0);
   useEffect(() => {
-    let raf = 0;
-    let dir = 1;
+    let raf = 0, dir = 1;
     const step = () => {
       raf = requestAnimationFrame(step);
       setT((p) => {
@@ -292,7 +263,6 @@ function Sweep() {
   );
 }
 
-/* ---------- Tiny firework pop ---------- */
 function Pop({ x, y, delay = 0 }: { x: string; y: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -302,7 +272,7 @@ function Pop({ x, y, delay = 0 }: { x: string; y: string; delay?: number }) {
     const go = () => {
       raf = requestAnimationFrame(go);
       t += 1 / 60;
-      const phase = (t + (delay || 0) * 2) % 2.8; // repeat every ~2.8s
+      const phase = (t + (delay || 0) * 2) % 2.8;
       const s = phase < 0.3 ? phase / 0.3 : phase < 1.2 ? 1 : Math.max(0, 1.8 - phase);
       el.style.transform = `translate(-50%,-50%) scale(${s})`;
       el.style.opacity = `${s}`;
@@ -317,18 +287,7 @@ function Pop({ x, y, delay = 0 }: { x: string; y: string; delay?: number }) {
           const a = (i / 14) * Math.PI * 2;
           const x2 = 60 + Math.cos(a) * 40;
           const y2 = 60 + Math.sin(a) * 40;
-          return (
-            <line
-              key={i}
-              x1="60"
-              y1="60"
-              x2={x2}
-              y2={y2}
-              stroke="rgba(255,220,150,.95)"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          );
+          return <line key={i} x1="60" y1="60" x2={x2} y2={y2} stroke="rgba(255,220,150,.95)" strokeWidth="2" strokeLinecap="round" />;
         })}
       </svg>
     </div>
