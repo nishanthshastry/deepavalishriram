@@ -5,8 +5,8 @@
   "type": "module",
   "homepage": "https://nishanthshastry.github.io/deepavalishriram/",
   "scripts": {
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d build",
+    "predeploy": "npm run build && cp -f dist/index.html dist/404.html",
+    "deploy": "gh-pages -d dist -b gh-pages",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
