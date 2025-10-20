@@ -160,6 +160,11 @@ function AudioControls() {
           </div>
         </div>
       </div>
+
+      {/* Info message for users */}
+      <div className="mt-2 text-center text-[11px] sm:text-xs text-amber-300/90 animate-fade-in">
+        🎵 If the music doesn’t start automatically, please press the ▶️ Play or ⏸ Pause button.
+      </div>
     </div>
   );
 }
