@@ -1,17 +1,31 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * RamImageFX
- * - Drop this in src/RamImageFX.tsx
- * - Usage: <RamImageFX src="/assets/ram1.jpg" caption="जय श्री राम" />
- * No external deps. Tailwind is optional; replace classNames if not using.
+ * Renders one image with layered cinematic FX.
+ * This version accepts a rich `options` prop so every slide can feel unique.
  */
+
+type FireworkPt = { x: string; y: string; delay?: number };
+type FXOptions = {
+  // visuals
+  bloom?: number;                 // GaussianBlur stdDeviation (default 6)
+  shimmerScale?: number;          // feDisplacementMap scale (default 8)
+  vignetteStrength?: number;      // 0..1 (default 1)
+  showSweep?: boolean;            // moving light sweep band
+  // particles
+  emberCount?: number;            // default 80
+  hueMin?: number;                // ember hue range (default 35)
+  hueMax?: number;                // ember hue range (default 60)
+  fireworks?: FireworkPt[];       // override fireworks positions
+};
 
 type Props = {
   src: string;
   caption?: string;
   fireworks?: boolean;
   sparkles?: boolean;
+  options?: FXOptions;
 };
 
 const W = 1280;
@@ -22,10 +36,18 @@ export default function RamImageFX({
   caption = "जय श्री राम",
   fireworks = true,
   sparkles = true,
+  options = {},
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [loaded, setLoaded] = useState(false);
+
+  const bloom = options.bloom ?? 6;
+  const shimmerScale = options.shimmerScale ?? 8;
+  const vignetteStrength = options.vignetteStrength ?? 1;
+  const emberCount = options.emberCount ?? 80;
+  const hueMin = options.hueMin ?? 35;
+  const hueMax = options.hueMax ?? 60;
+  const sweepOn = options.showSweep ?? false;
 
   // --- Embers / Sparkles canvas ---
   useEffect(() => {
@@ -46,7 +68,8 @@ export default function RamImageFX({
     window.addEventListener("resize", onResize);
 
     type P = { x: number; y: number; vx: number; vy: number; r: number; a: number; hue: number };
-    const N = 80;
+    const N = emberCount;
+    const randHue = () => hueMin + Math.random() * (hueMax - hueMin);
     const ps: P[] = Array.from({ length: N }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
@@ -54,21 +77,17 @@ export default function RamImageFX({
       vy: (-0.12 - Math.random() * 0.2) * DPR,
       r: (1 + Math.random() * 1.8) * DPR,
       a: 0.3 + Math.random() * 0.6,
-      hue: 35 + Math.random() * 25, // warm gold/orange
+      hue: randHue(),
     }));
 
     const draw = () => {
       if (!run) return;
       raf = requestAnimationFrame(draw);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // subtle additive background noise
       ctx.globalCompositeOperation = "lighter";
 
       for (const p of ps) {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.a -= 0.0008;
+        p.x += p.vx; p.y += p.vy; p.a -= 0.0008;
         if (p.y < -10 * DPR || p.a <= 0.02) {
           p.x = Math.random() * canvas.width;
           p.y = canvas.height + 10 * DPR;
@@ -76,7 +95,7 @@ export default function RamImageFX({
           p.vx = (Math.random() - 0.5) * 0.08 * DPR;
           p.vy = (-0.12 - Math.random() * 0.2) * DPR;
           p.r = (1 + Math.random() * 1.8) * DPR;
-          p.hue = 35 + Math.random() * 25;
+          p.hue = randHue();
         }
         const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 8 * DPR);
         grad.addColorStop(0, `hsla(${p.hue}, 100%, 70%, ${0.8 * p.a})`);
@@ -85,8 +104,6 @@ export default function RamImageFX({
         ctx.beginPath();
         ctx.arc(p.x, p.y, 6 * DPR, 0, Math.PI * 2);
         ctx.fill();
-
-        // core
         ctx.fillStyle = `hsla(${p.hue},100%,85%,${0.8 * p.a})`;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
@@ -101,7 +118,7 @@ export default function RamImageFX({
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", onResize);
     };
-  }, []);
+  }, [emberCount, hueMin, hueMax]);
 
   // --- Parallax tilt ---
   useEffect(() => {
@@ -138,71 +155,74 @@ export default function RamImageFX({
       <div
         ref={wrapRef}
         className="relative overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_0_80px_rgba(255,170,0,0.25)]"
-        style={{
-          height: "72vh",
-          perspective: "900px",
-          transformStyle: "preserve-3d",
-        }}
+        style={{ height: "72vh", perspective: "900px", transformStyle: "preserve-3d" }}
       >
         {/* God-ray / vignette background */}
-        <div className="absolute inset-0"
+        <div
+          className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(60% 60% at 45% 35%, rgba(255,174,0,.22) 0%, rgba(255,136,0,0.10) 45%, rgba(0,0,0,0) 65%)",
+              `radial-gradient(60% 60% at 45% 35%, rgba(255,174,0,${0.22*vignetteStrength}) 0%, rgba(255,136,0,${0.10*vignetteStrength}) 45%, rgba(0,0,0,0) 65%)`,
             mixBlendMode: "screen",
             transform: "translateZ(-40px)",
           }}
         />
 
         {/* Heat-shimmer filter host (SVG wraps the image) */}
-        <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice"
-             style={{ transform: "rotateX(var(--tiltX)) rotateY(var(--tiltY))" }}>
+        <svg
+          className="absolute inset-0 w-full h-full"
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="xMidYMid slice"
+          style={{ transform: "rotateX(var(--tiltX)) rotateY(var(--tiltY))" }}
+        >
           <defs>
-            {/* animated turbulence -> displacement for heat shimmer */}
             <filter id="heat" x="-20%" y="-20%" width="140%" height="140%">
               <feTurbulence type="fractalNoise" baseFrequency="0.006 0.012" numOctaves="2" seed="3" result="noise">
                 <animate attributeName="baseFrequency" dur="8s" values="0.006 0.012; 0.008 0.016; 0.006 0.012" repeatCount="indefinite" />
               </feTurbulence>
-              <feDisplacementMap in="SourceGraphic" in2="noise" scale="8" xChannelSelector="R" yChannelSelector="G" />
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale={shimmerScale} xChannelSelector="R" yChannelSelector="G" />
             </filter>
 
             {/* soft bloom by duplicating and blurring */}
             <filter id="bloom" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="6" result="b1"/>
-              <feColorMatrix type="matrix" values="
-                1 0 0 0 0
-                0 1 0 0 0
-                0 0 1 0 0
-                0 0 0 1 0" result="b2" />
+              <feGaussianBlur stdDeviation={bloom} result="b1" />
               <feMerge>
-                <feMergeNode in="b1"/>
-                <feMergeNode in="SourceGraphic"/>
+                <feMergeNode in="b1" />
+                <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
           </defs>
 
           {/* Base image (with heat shimmer) */}
           <image href={src} x="0" y="0" width={W} height={H} filter="url(#heat)" />
-
           {/* Bloom/glow duplicate with screen blend */}
-          <image href={src} x="0" y="0" width={W} height={H}
-                 style={{ mixBlendMode: "screen", opacity: 0.85 }} filter="url(#bloom)" />
+          <image
+            href={src}
+            x="0" y="0" width={W} height={H}
+            style={{ mixBlendMode: "screen", opacity: 0.85 }}
+            filter="url(#bloom)"
+          />
 
-          {/* Light sweep */}
-          {/* <g style={{ mixBlendMode: "screen" }}>
-            <rect x="0" y="0" width={W} height={H} fill="transparent" />
-            <Sweep />
-          </g> */}
+          {/* Optional light sweep */}
+          {sweepOn && (
+            <g style={{ mixBlendMode: "screen" }}>
+              <rect x="0" y="0" width={W} height={H} fill="transparent" />
+              <Sweep />
+            </g>
+          )}
         </svg>
 
         {/* Extra bloom halo (blurred) */}
-        <div className="absolute inset-0 pointer-events-none" style={{
-          background:
-            "radial-gradient(35% 35% at 48% 40%, rgba(255,220,160,.25) 0%, rgba(255,160,50,.18) 35%, rgba(0,0,0,0) 70%)",
-          filter: "blur(16px)",
-          mixBlendMode: "screen",
-          transform: "translateZ(-30px)",
-        }}/>
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(35% 35% at 48% 40%, rgba(255,220,160,.25) 0%, rgba(255,160,50,.18) 35%, rgba(0,0,0,0) 70%)",
+            filter: "blur(16px)",
+            mixBlendMode: "screen",
+            transform: "translateZ(-30px)",
+          }}
+        />
 
         {/* Embers / sparkles canvas */}
         {sparkles && (
@@ -216,17 +236,22 @@ export default function RamImageFX({
         {/* Small firework pops in the upper area */}
         {fireworks && (
           <div className="pointer-events-none absolute inset-0">
-            <Pop x="15%" y="22%" delay={0.2} />
-            <Pop x="78%" y="25%" delay={0.6} />
-            <Pop x="62%" y="14%" delay={1.0} />
+            {(options.fireworks ?? [
+              { x: "15%", y: "22%", delay: 0.2 },
+              { x: "78%", y: "25%", delay: 0.6 },
+              { x: "62%", y: "14%", delay: 1.0 },
+            ]).map((p, i) => (
+              <Pop key={i} x={p.x} y={p.y} delay={p.delay} />
+            ))}
           </div>
         )}
 
         {/* Caption */}
-        <div className="absolute bottom-4 left-0 right-0 text-center"
-             style={{ transform: "translateZ(20px)" }}>
-          <div className="mx-auto inline-block rounded-full border border-amber-400/60 px-4 py-1.5 text-amber-200/95 backdrop-blur-sm"
-               style={{ textShadow: "0 0 12px rgba(255,190,80,.7)" }}>
+        <div className="absolute bottom-4 left-0 right-0 text-center" style={{ transform: "translateZ(20px)" }}>
+          <div
+            className="mx-auto inline-block rounded-full border border-amber-400/60 px-4 py-1.5 text-amber-200/95 backdrop-blur-sm"
+            style={{ textShadow: "0 0 12px rgba(255,190,80,.7)" }}
+          >
             {caption}
           </div>
         </div>
@@ -277,7 +302,7 @@ function Pop({ x, y, delay = 0 }: { x: string; y: string; delay?: number }) {
     const go = () => {
       raf = requestAnimationFrame(go);
       t += 1 / 60;
-      const phase = (t + delay * 2) % 2.8; // repeat every ~2.8s
+      const phase = (t + (delay || 0) * 2) % 2.8; // repeat every ~2.8s
       const s = phase < 0.3 ? phase / 0.3 : phase < 1.2 ? 1 : Math.max(0, 1.8 - phase);
       el.style.transform = `translate(-50%,-50%) scale(${s})`;
       el.style.opacity = `${s}`;
@@ -293,8 +318,16 @@ function Pop({ x, y, delay = 0 }: { x: string; y: string; delay?: number }) {
           const x2 = 60 + Math.cos(a) * 40;
           const y2 = 60 + Math.sin(a) * 40;
           return (
-            <line key={i} x1="60" y1="60" x2={x2} y2={y2}
-                  stroke="rgba(255,220,150,.95)" strokeWidth="2" strokeLinecap="round" />
+            <line
+              key={i}
+              x1="60"
+              y1="60"
+              x2={x2}
+              y2={y2}
+              stroke="rgba(255,220,150,.95)"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
           );
         })}
       </svg>
