@@ -19,22 +19,30 @@ function AudioControls() {
   const [vol, setVol] = useState(0.6);
   const [curr, setCurr] = useState(0);
   const [dur, setDur] = useState(NaN);
+  const [showHint, setShowHint] = useState(true);
 
   useEffect(() => {
-    const a = new Audio("audio/ramlofi.mp3"); // no leading slash
+    const a = new Audio("audio/ramlofi.mp3");
     a.loop = true;
     a.preload = "auto";
     a.muted = false;
     a.volume = vol;
 
     a.play()
-      .then(() => { setMuted(false); setPlaying(true); })
+      .then(() => {
+        setMuted(false);
+        setPlaying(true);
+      })
       .catch(() => {
-        a.muted = true; a.volume = 0;
+        a.muted = true;
+        a.volume = 0;
         a.play().catch(() => {});
-        setMuted(true); setPlaying(true);
+        setMuted(true);
+        setPlaying(true);
         const unlock = () => {
-          a.muted = false; a.volume = vol; a.play().catch(() => {});
+          a.muted = false;
+          a.volume = vol;
+          a.play().catch(() => {});
           setMuted(false);
           window.removeEventListener("pointerdown", unlock);
           window.removeEventListener("keydown", unlock);
@@ -47,80 +55,126 @@ function AudioControls() {
 
     audioRef.current = a;
 
-    const onMeta = () => { setDur(a.duration); setCurr(a.currentTime || 0); };
+    const onMeta = () => {
+      setDur(a.duration);
+      setCurr(a.currentTime || 0);
+    };
     const onTime = () => setCurr(a.currentTime || 0);
     const onEnded = () => setPlaying(false);
-
     a.addEventListener("loadedmetadata", onMeta);
     a.addEventListener("timeupdate", onTime);
     a.addEventListener("ended", onEnded);
 
-    const onVis = () => { if (!document.hidden) a.play().catch(() => {}); };
-    document.addEventListener("visibilitychange", onVis);
-
-    const tick = () => { if (audioRef.current) setCurr(audioRef.current.currentTime || 0); rafRef.current = requestAnimationFrame(tick); };
+    const tick = () => {
+      if (audioRef.current)
+        setCurr(audioRef.current.currentTime || 0);
+      rafRef.current = requestAnimationFrame(tick);
+    };
     rafRef.current = requestAnimationFrame(tick);
 
-    const onKey = (e: KeyboardEvent) => {
-      if (!audioRef.current) return;
-      if (e.key.toLowerCase() === "m") toggleMute();
-      else if (e.key === " ") { e.preventDefault(); togglePlay(); }
-      else if (e.key === "ArrowRight") skip(10);
-      else if (e.key === "ArrowLeft") skip(-10);
-      else if (e.key === "ArrowUp") changeVol(Math.min(1, (audioRef.current.volume ?? vol) + 0.1));
-      else if (e.key === "ArrowDown") changeVol(Math.max(0, (audioRef.current.volume ?? vol) - 0.1));
-    };
-    window.addEventListener("keydown", onKey);
+    // Hide the hint after 10 seconds
+    const timer = setTimeout(() => setShowHint(false), 10000);
 
     return () => {
-      a.removeEventListener("loadedmetadata", onMeta);
-      a.removeEventListener("timeupdate", onTime);
-      a.removeEventListener("ended", onEnded);
-      document.removeEventListener("visibilitychange", onVis);
-      window.removeEventListener("keydown", onKey);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      a.pause(); a.src = ""; audioRef.current = null;
+      a.pause();
+      a.src = "";
+      audioRef.current = null;
+      clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const togglePlay = () => {
-    const a = audioRef.current; if (!a) return;
-    if (a.paused) { a.play().catch(() => {}); setPlaying(true); } else { a.pause(); setPlaying(false); }
+    const a = audioRef.current;
+    if (!a) return;
+    if (a.paused) {
+      a.play().catch(() => {});
+      setPlaying(true);
+    } else {
+      a.pause();
+      setPlaying(false);
+    }
   };
+
   const skip = (d: number) => {
-    const a = audioRef.current; if (!a) return;
+    const a = audioRef.current;
+    if (!a) return;
     const duration = isFinite(a.duration) ? a.duration : Infinity;
-    const target = Math.max(0, Math.min(isFinite(duration) ? duration : a.currentTime + d + 1, a.currentTime + d));
+    const target = Math.max(
+      0,
+      Math.min(isFinite(duration) ? duration : a.currentTime + d + 1, a.currentTime + d)
+    );
     // @ts-ignore
-    if (typeof a.fastSeek === "function") a.fastSeek(target); else a.currentTime = target;
-    if (a.paused) { a.play().catch(() => {}); setPlaying(true); }
+    if (typeof a.fastSeek === "function") a.fastSeek(target);
+    else a.currentTime = target;
+    if (a.paused) {
+      a.play().catch(() => {});
+      setPlaying(true);
+    }
   };
+
   const toggleMute = () => {
-    const a = audioRef.current; if (!a) return;
-    a.muted = !a.muted; setMuted(a.muted);
-    if (!a.muted) { a.volume = vol; if (a.paused) a.play().catch(() => {}); }
+    const a = audioRef.current;
+    if (!a) return;
+    a.muted = !a.muted;
+    setMuted(a.muted);
+    if (!a.muted) {
+      a.volume = vol;
+      if (a.paused) a.play().catch(() => {});
+    }
   };
+
   const changeVol = (v: number) => {
-    setVol(v); const a = audioRef.current; if (!a) return;
-    a.volume = v; if (a.muted && v > 0) { a.muted = false; setMuted(false); a.play().catch(() => {}); }
+    setVol(v);
+    const a = audioRef.current;
+    if (!a) return;
+    a.volume = v;
+    if (a.muted && v > 0) {
+      a.muted = false;
+      setMuted(false);
+      a.play().catch(() => {});
+    }
+  };
+
+  const formatTime = (sec: number) => {
+    if (!isFinite(sec)) return "--:--";
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
   return (
-    <div className="fixed inset-x-3 sm:inset-x-4 bottom-3 sm:bottom-4 z-50">
+    <div className="fixed inset-x-3 sm:inset-x-4 bottom-5 sm:bottom-6 z-50">
       <div className="mx-auto max-w-[680px] sm:max-w-5xl rounded-2xl border border-white/10 bg-black/70 px-3 py-2 sm:px-4 sm:py-3 backdrop-blur shadow-lg">
         {/* Top row: transport (left) & volume (right) */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-3">
-            <button onClick={togglePlay} className="rounded-full bg-amber-400/90 text-black text-sm font-semibold px-3 py-1.5 hover:scale-105" aria-label={playing ? "Pause audio" : "Play audio"}>
+            <button
+              onClick={togglePlay}
+              className="rounded-full bg-amber-400/90 text-black text-sm font-semibold px-3 py-1.5 hover:scale-105"
+            >
               {playing ? "Pause ⏸" : "Play ▶️"}
             </button>
-            <button onClick={() => skip(-10)} className="rounded-full bg-white/15 text-white text-sm font-semibold px-3 py-1.5 hover:scale-105" title="Back 10s (←)">⏪ -10s</button>
-            <button onClick={() => skip(10)} className="rounded-full bg-white/15 text-white text-sm font-semibold px-3 py-1.5 hover:scale-105" title="Forward 10s (→)">⏩ +10s</button>
+            <button
+              onClick={() => skip(-10)}
+              className="rounded-full bg-white/15 text-white text-sm font-semibold px-3 py-1.5 hover:scale-105"
+            >
+              ⏪ -10s
+            </button>
+            <button
+              onClick={() => skip(10)}
+              className="rounded-full bg-white/15 text-white text-sm font-semibold px-3 py-1.5 hover:scale-105"
+            >
+              ⏩ +10s
+            </button>
           </div>
 
           <div className="hidden sm:flex items-center gap-3">
-            <button onClick={toggleMute} className="rounded-full bg-amber-400/90 text-black text-sm font-semibold px-3 py-1.5 hover:scale-105">
+            <button
+              onClick={toggleMute}
+              className="rounded-full bg-amber-400/90 text-black text-sm font-semibold px-3 py-1.5 hover:scale-105"
+            >
               {muted ? "Unmute 🔊" : "Mute 🔇"}
             </button>
             <div className="flex items-center gap-2">
@@ -130,7 +184,9 @@ function AudioControls() {
                 min={0}
                 max={100}
                 value={Math.round(vol * 100)}
-                onInput={(e) => changeVol(parseInt((e.target as HTMLInputElement).value, 10) / 100)}
+                onInput={(e) =>
+                  changeVol(parseInt((e.target as HTMLInputElement).value, 10) / 100)
+                }
                 className="accent-amber-400"
                 style={{ width: 140 }}
               />
@@ -144,7 +200,10 @@ function AudioControls() {
             {formatTime(curr)} <span className="text-white/50">/</span> {formatTime(dur)}
           </div>
           <div className="flex sm:hidden items-center gap-2">
-            <button onClick={toggleMute} className="rounded-full bg-amber-400/90 text-black text-xs font-semibold px-3 py-1">
+            <button
+              onClick={toggleMute}
+              className="rounded-full bg-amber-400/90 text-black text-xs font-semibold px-3 py-1"
+            >
               {muted ? "Unmute 🔊" : "Mute 🔇"}
             </button>
             <span className="text-[11px] text-white/70">Vol</span>
@@ -153,7 +212,9 @@ function AudioControls() {
               min={0}
               max={100}
               value={Math.round(vol * 100)}
-              onInput={(e) => changeVol(parseInt((e.target as HTMLInputElement).value, 10) / 100)}
+              onInput={(e) =>
+                changeVol(parseInt((e.target as HTMLInputElement).value, 10) / 100)
+              }
               className="accent-amber-400"
               style={{ width: 130 }}
             />
@@ -161,10 +222,28 @@ function AudioControls() {
         </div>
       </div>
 
-      {/* Info message for users */}
-      <div className="mt-2 text-center text-[11px] sm:text-xs text-amber-300/90 animate-fade-in">
-        🎵 If the music doesn’t start automatically, please press the ▶️ Play or ⏸ Pause button.
-      </div>
+      {/* Message (appears then fades out) */}
+      {showHint && (
+        <div
+          className="mt-3 text-center text-[11px] sm:text-xs text-amber-300/90 animate-fadein"
+          style={{ animation: "fadeout 1s ease-in 8s forwards" }}
+        >
+          🎵 If the music doesn’t start automatically, please press the{" "}
+          <span className="font-semibold">▶️ Play</span> or{" "}
+          <span className="font-semibold">⏸ Pause</span> button.
+        </div>
+      )}
+
+      {/* Scoped keyframes for fade */}
+      <style>{`
+        @keyframes fadeout {
+          to { opacity: 0; transform: translateY(4px); }
+        }
+        @keyframes fadein {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }
