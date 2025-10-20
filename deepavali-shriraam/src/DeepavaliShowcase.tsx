@@ -3,18 +3,15 @@ import RamImageFX from "./RamImageFX";
 
 type Slide = { src: string; caption: string; options?: any };
 
-// Helper so assets work both locally and on GitHub Pages
-const u = (p: string) => `${import.meta.env.BASE_URL}${p}`;
-
 const DEFAULT_SLIDES: Slide[] = [
-  { src: u("assets/ram1.jpg"), caption: "जय श्री राम", options: { bloom: 10, shimmerScale: 10, showSweep: true, emberCount: 110 } },
-  { src: u("assets/ram2.jpg"), caption: "श्री राम",     options: { bloom: 12, shimmerScale: 6,  emberCount: 130, hueMin: 25, hueMax: 45 } },
-  { src: u("assets/ram3.jpg"), caption: "राम",          options: { bloom: 8,  shimmerScale: 12, emberCount: 90,  fireworks: [{ x: "65%", y: "20%", delay: 0.4 }] } },
-  { src: u("assets/hanuman.jpg"), caption: "जय बजरंगबली", options: { bloom: 9, shimmerScale: 8, emberCount: 80, vignetteStrength: 0.8 } },
-  { src: u("assets/ram4.jpg"), caption: "श्री राम • लक्ष्मण • हनुमान", options: { bloom: 7, shimmerScale: 6, emberCount: 70, fireworks: [{ x: "20%", y: "18%", delay: 0.2 }, { x: "80%", y: "22%", delay: 0.8 }], vignetteStrength: 0.7 } },
-  { src: u("assets/ramsetu.jpg"), caption: "जय श्री राम • सेतु निर्माण", options: { bloom: 11, shimmerScale: 5, emberCount: 140, hueMin: 30, hueMax: 55, showSweep: true } },
-  { src: u("assets/ramsitawedding.jpg"), caption: "सीता-राम विवाह", options: { bloom: 10, shimmerScale: 4, emberCount: 120, hueMin: 28, hueMax: 50 } },
-  { src: u("assets/srljh.jpg"), caption: "श्री राम • लक्ष्मण • जानकी • हनुमान", options: { bloom: 9, shimmerScale: 7, emberCount: 100 } },
+  { src: "assets/ram1.jpg", caption: "जय श्री राम", options: { bloom: 10, shimmerScale: 10, showSweep: true, emberCount: 110 } },
+  { src: "assets/ram2.jpg", caption: "श्री राम",     options: { bloom: 12, shimmerScale: 6,  emberCount: 130, hueMin: 25, hueMax: 45 } },
+  { src: "assets/ram3.jpg", caption: "राम",          options: { bloom: 8,  shimmerScale: 12, emberCount: 90,  fireworks: [{ x: "65%", y: "20%", delay: 0.4 }] } },
+  { src: "assets/hanuman.jpg", caption: "जय बजरंगबली", options: { bloom: 9, shimmerScale: 8, emberCount: 80, vignetteStrength: 0.8 } },
+  { src: "assets/ram4.jpg", caption: "श्री राम • लक्ष्मण • हनुमान", options: { bloom: 7, shimmerScale: 6, emberCount: 70, fireworks: [{ x: "20%", y: "18%", delay: 0.2 }, { x: "80%", y: "22%", delay: 0.8 }], vignetteStrength: 0.7 } },
+  { src: "assets/ramsetu.jpg", caption: "जय श्री राम • सेतु निर्माण", options: { bloom: 11, shimmerScale: 5, emberCount: 140, hueMin: 30, hueMax: 55, showSweep: true } },
+  { src: "assets/ramsitawedding.jpg", caption: "सीता-राम विवाह", options: { bloom: 10, shimmerScale: 4, emberCount: 120, hueMin: 28, hueMax: 50 } },
+  { src: "assets/srljh.jpg", caption: "श्री राम • लक्ष्मण • जानकी • हनुमान", options: { bloom: 9, shimmerScale: 7, emberCount: 100 } },
 ];
 
 type Props = {
@@ -52,7 +49,9 @@ const useInterval = (cb: () => void, delay: number | null) => {
 };
 
 const Dots: React.FC<{ count: number; index: number; onPick: (i: number) => void }> = ({
-  count, index, onPick,
+  count,
+  index,
+  onPick,
 }) => (
   <div className="flex items-center justify-center gap-2">
     {Array.from({ length: count }, (_, i) => (
@@ -92,7 +91,7 @@ const RotatingGreeting: React.FC<{ intervalMs?: number }> = ({ intervalMs = 3200
   );
 };
 
-// Frame: taller on phones so caption chip never clips; tuned to avoid page scroll on desktop/tablet
+// Frame: height is controlled here; inner FX fills 100% (so no prod mismatch)
 const Frame: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div
     className="
@@ -168,12 +167,12 @@ export default function DeepavaliShowcase({
         <Controls onPrev={prev} onNext={next} />
       </Frame>
 
-      {/* Dots OUTSIDE (tight spacing on mobile) */}
+      {/* Dots below frame */}
       <div className="mt-1 sm:mt-2 mb-1 px-2">
         <Dots count={total} index={index} onPick={setIndex} />
       </div>
 
-      {/* Footer (very compact on phones) */}
+      {/* Footer text */}
       <div className="mt-0.5 sm:mt-2 text-center text-[10px] sm:text-xs text-white/50 px-3">
         Built using React + TypeScript (image FX)
       </div>
