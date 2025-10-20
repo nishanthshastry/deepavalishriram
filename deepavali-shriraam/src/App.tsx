@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import DeepavaliShowcase from "./DeepavaliShowcase";
 
 /* helpers */
-const formatTime = (sec: number) => {
-  if (!isFinite(sec)) return "--:--";
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-};
+// const formatTime = (sec: number) => {
+//   if (!isFinite(sec)) return "--:--";
+//   const m = Math.floor(sec / 60);
+//   const s = Math.floor(sec % 60);
+//   return `${m}:${s.toString().padStart(2, "0")}`;
+// };
 
 /* audio controls – compact on mobile, aligned on desktop */
 function AudioControls() {
