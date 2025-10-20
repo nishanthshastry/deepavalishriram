@@ -4,14 +4,14 @@ import RamImageFX from "./RamImageFX";
 type Slide = { src: string; caption: string; options?: any };
 
 const DEFAULT_SLIDES: Slide[] = [
-  { src: "/assets/ram1.jpg", caption: "जय श्री राम", options: { bloom: 10, shimmerScale: 10, showSweep: true, emberCount: 110 } },
-  { src: "/assets/ram2.jpg", caption: "श्री राम",     options: { bloom: 12, shimmerScale: 6,  emberCount: 130, hueMin: 25, hueMax: 45 } },
-  { src: "/assets/ram3.jpg", caption: "राम",          options: { bloom: 8,  shimmerScale: 12, emberCount: 90,  fireworks: [{ x: "65%", y: "20%", delay: 0.4 }] } },
-  { src: "/assets/hanuman.jpg", caption: "जय बजरंगबली", options: { bloom: 9, shimmerScale: 8, emberCount: 80, vignetteStrength: 0.8 } },
-  { src: "/assets/ram4.jpg", caption: "श्री राम • लक्ष्मण • हनुमान", options: { bloom: 7, shimmerScale: 6, emberCount: 70, fireworks: [{ x: "20%", y: "18%", delay: 0.2 }, { x: "80%", y: "22%", delay: 0.8 }], vignetteStrength: 0.7 } },
-  { src: "/assets/ramsetu.jpg", caption: "जय श्री राम • सेतु निर्माण", options: { bloom: 11, shimmerScale: 5, emberCount: 140, hueMin: 30, hueMax: 55, showSweep: true } },
-  { src: "/assets/ramsitawedding.jpg", caption: "सीता-राम विवाह", options: { bloom: 10, shimmerScale: 4, emberCount: 120, hueMin: 28, hueMax: 50 } },
-  { src: "/assets/srljh.jpg", caption: "श्री राम • लक्ष्मण • जानकी • हनुमान", options: { bloom: 9, shimmerScale: 7, emberCount: 100 } },
+  { src: "assets/ram1.jpg", caption: "जय श्री राम", options: { bloom: 10, shimmerScale: 10, showSweep: true, emberCount: 110 } },
+  { src: "assets/ram2.jpg", caption: "श्री राम",     options: { bloom: 12, shimmerScale: 6,  emberCount: 130, hueMin: 25, hueMax: 45 } },
+  { src: "assets/ram3.jpg", caption: "राम",          options: { bloom: 8,  shimmerScale: 12, emberCount: 90,  fireworks: [{ x: "65%", y: "20%", delay: 0.4 }] } },
+  { src: "assets/hanuman.jpg", caption: "जय बजरंगबली", options: { bloom: 9, shimmerScale: 8, emberCount: 80, vignetteStrength: 0.8 } },
+  { src: "assets/ram4.jpg", caption: "श्री राम • लक्ष्मण • हनुमान", options: { bloom: 7, shimmerScale: 6, emberCount: 70, fireworks: [{ x: "20%", y: "18%", delay: 0.2 }, { x: "80%", y: "22%", delay: 0.8 }], vignetteStrength: 0.7 } },
+  { src: "assets/ramsetu.jpg", caption: "जय श्री राम • सेतु निर्माण", options: { bloom: 11, shimmerScale: 5, emberCount: 140, hueMin: 30, hueMax: 55, showSweep: true } },
+  { src: "assets/ramsitawedding.jpg", caption: "सीता-राम विवाह", options: { bloom: 10, shimmerScale: 4, emberCount: 120, hueMin: 28, hueMax: 50 } },
+  { src: "assets/srljh.jpg", caption: "श्री राम • लक्ष्मण • जानकी • हनुमान", options: { bloom: 9, shimmerScale: 7, emberCount: 100 } },
 ];
 
 type Props = {

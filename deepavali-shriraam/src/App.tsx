@@ -21,7 +21,7 @@ function AudioControls() {
   const [dur, setDur] = useState(NaN);
 
   useEffect(() => {
-    const a = new Audio("/audio/ramlofi.mp3");
+    const a = new Audio("audio/ramlofi.mp3");
     a.loop = true;
     a.preload = "auto";
 
