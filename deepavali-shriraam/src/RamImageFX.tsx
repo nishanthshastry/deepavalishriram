@@ -190,7 +190,7 @@ export default function RamImageFX({
           <image href={src} x="0" y="0" width={W} height={H} filter="url(#heat)" />
           <image href={src} x="0" y="0" width={W} height={H} style={{ mixBlendMode: "screen", opacity: 0.85 }} filter="url(#bloom)" />
 
-          {options.showSweep && <g style={{ mixBlendMode: "screen" }}><rect x="0" y="0" width={W} height={H} fill="transparent" /><Sweep /></g>}
+          {sweepOn && <g style={{ mixBlendMode: "screen" }}><rect x="0" y="0" width={W} height={H} fill="transparent" /><Sweep /></g>}
         </svg>
 
         {/* Halo */}
